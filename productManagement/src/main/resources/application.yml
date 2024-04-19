@@ -1,0 +1,17 @@
+spring:
+  application:
+    name: productManagement
+  mvc:
+    view:
+      prefix: /WEB-INF/views/
+      suffix: .jsp
+  rabbitmq:
+    host: ${RABBITMQ_HOST}
+    port: ${RABBITMQ_PORT}
+    username: ${RABBITMQ_USERNAME}
+    password: ${RABBITMQ_PASSWORD}
+server:
+  port: 8082
+  error:
+    whitelabel:
+      enabled: false

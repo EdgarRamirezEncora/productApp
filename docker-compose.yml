@@ -1,0 +1,46 @@
+version: '3.9'
+
+services:
+  postgresql:
+    container_name: product-microservice-db
+    image: postgres:13-alpine
+    ports:
+      - '5435:5435'
+    volumes:
+      - product-db-data:/var/lib/postgresql/data
+      - ./container_files/postgresql/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./container_files/postgresql/scripts:/scripts
+    env_file: ./container_files/postgresql/.env
+  product_storage:
+    container_name: product-storage
+    build:
+      context: ./productStorage
+    env_file: container_files/product-storage/.env
+    ports:
+      - '8081:8081'
+    volumes:
+      - ./productStorage:/productStorage
+    depends_on:
+      - rabbitmq
+      - postgresql
+  product_management:
+    container_name: product-management
+    build:
+      context: ./productManagement
+    env_file: container_files/product-management/.env
+    ports:
+      - '8082:8082'
+    volumes:
+      - ./productManagement:/productManagement
+    depends_on:
+      - rabbitmq
+      - postgresql
+  rabbitmq:
+    container_name: product-message-queue
+    image: rabbitmq:3.13-management-alpine
+    env_file: ./container_files/rabbitmq/.env
+    ports:
+      - '5675:5675'
+      - '15672:15672'
+volumes:
+  product-db-data:

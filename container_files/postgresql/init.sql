@@ -1,0 +1,5 @@
+\i '/scripts/ProductTable.sql'
+\i '/scripts/AddProductSp.sql'
+\i '/scripts/GetProductsFn.sql'
+\i '/scripts/GetProductFn.sql'
+\i '/scripts/ProductTablePopulation.sql'
