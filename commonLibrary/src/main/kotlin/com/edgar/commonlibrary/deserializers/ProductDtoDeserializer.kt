@@ -16,8 +16,7 @@ class ProductDtoDeserializer {
         return mapper.convertValue(response, ProductDto::class.java)
     }
 
-    fun deserializeProductList(response: Any?): List<ProductDto> {
-        return mapper.convertValue(response,
-            object : TypeReference<List<ProductDto>>() {})
+    fun deserializerProductListDto(response: Any?): List<ProductDto> {
+        return mapper.convertValue(response, object : TypeReference<List<ProductDto>>() {})
     }
 }

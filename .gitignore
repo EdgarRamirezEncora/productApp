@@ -36,3 +36,4 @@ build/
 
 ## CUSTOM IGNORE
 *target/
+*.env

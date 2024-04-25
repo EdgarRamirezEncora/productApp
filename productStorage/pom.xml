@@ -68,6 +68,11 @@
             <artifactId>lombok</artifactId>
             <optional>true</optional>
         </dependency>
+        <dependency>
+            <groupId>com.michael-bull.kotlin-result</groupId>
+            <artifactId>kotlin-result-jvm</artifactId>
+            <version>1.1.18</version>
+        </dependency>
     </dependencies>
 
     <build>

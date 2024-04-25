@@ -1,72 +1,155 @@
 package com.edgar.productManagement.services.impl
 
+import com.edgar.commonlibrary.deserializers.ErrorResponseDeserializer
 import com.edgar.commonlibrary.deserializers.ProductDtoDeserializer
 import com.edgar.commonlibrary.dtos.AddProductDto
 import com.edgar.commonlibrary.dtos.ProductDto
-import com.edgar.commonlibrary.exceptions.InvalidProductException
-import com.edgar.commonlibrary.exceptions.InvalidProductListException
 import com.edgar.commonlibrary.util.ConfigVariables
 import com.edgar.productManagement.services.ProductService
 import com.fasterxml.jackson.databind.ObjectMapper
-import jakarta.validation.Valid
 import org.springframework.amqp.rabbit.core.RabbitTemplate
 import org.springframework.stereotype.Service
-import java.math.BigDecimal
-import com.edgar.commonlibrary.exceptions.ProductNotFoundException
 import com.edgar.commonlibrary.util.ErrorMessages
+import com.edgar.commonlibrary.util.ErrorResponse
+import com.github.michaelbull.result.*
+import jakarta.validation.Valid
+import org.springframework.amqp.AmqpException
+import org.springframework.http.HttpStatus
+import java.util.Date
 
 @Service
 class ProductServiceImpl(
     private val rabbitTemplate: RabbitTemplate,
     private val objectMapper: ObjectMapper,
-    private val productDtoDeserializer: ProductDtoDeserializer
+    private val productDtoDeserializer: ProductDtoDeserializer,
+    private val errorResponseDeserializer: ErrorResponseDeserializer
 ) : ProductService {
-    val productList = mutableListOf(
-        ProductDto(1, "Product 1", "Description 1", BigDecimal("1.0")),
-        ProductDto(2, "Product 2", "Description 2", BigDecimal("2.0")),
-        ProductDto(2, "Product 2", "Description 3", BigDecimal("3.0"))
-    )
+    override fun getAllProducts() : Result<List<ProductDto>, ErrorResponse> {
+        try {
+            val request = mapOf("action" to "getAllProducts")
 
-    override fun getAllProducts() : List<ProductDto> {
-        val request = mapOf("action" to "getAllProducts")
+            val response  = rabbitTemplate.convertSendAndReceive(
+                    ConfigVariables.RABBITMQ_GET_PRODUCT_LIST_EXCHANGE_NAME,
+                    ConfigVariables.RABBITMQ_GET_PRODUCT_LIST_ROUTING_KEY,
+                    objectMapper.writeValueAsString(request)
+            )
 
-        val response = rabbitTemplate.convertSendAndReceive(
-            ConfigVariables.RABBITMQ_GET_PRODUCT_LIST_EXCHANGE_NAME,
-            ConfigVariables.RABBITMQ_GET_PRODUCT_LIST_ROUTING_KEY,
-            objectMapper.writeValueAsString(request)
-        )
+            val result = when(response) {
+                is Ok<*> -> response as Ok<List<ProductDto>>
+                is Err<*> -> response as Err<ErrorResponse>
+                else -> Err(
+                    ErrorResponse(
+                        ErrorMessages.GENERIC_ERROR_MESSAGE,
+                        HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                        Date()
+                    )
+                )
+            }
 
-        if (response == null) {
-            throw InvalidProductListException(ErrorMessages.INVALID_PRODUCT_LIST_MESSAGE)
+           return when(result) {
+               is Ok<List<ProductDto>> -> Ok(productDtoDeserializer.deserializerProductListDto(result.value))
+               is Err<ErrorResponse> -> Err(errorResponseDeserializer.deserializeErrorResponse(result.error))
+           }
+        } catch (ex: Exception) {
+            val errorMessage = when(ex) {
+                is AmqpException -> ErrorMessages.GENERIC_MESSAGE_QUEUE_ERROR_MESSAGE
+                is IllegalArgumentException -> ErrorMessages.INVALID_PRODUCT_LIST_MESSAGE
+                else -> ErrorMessages.GENERIC_ERROR_MESSAGE
+            }
+
+            return Err(
+                ErrorResponse(
+                    errorMessage,
+                    HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                    Date()
+                )
+            )
         }
-
-        return productDtoDeserializer.deserializeProductList(response)
     }
 
-    override fun getProductById(id : Long) : ProductDto {
-        val request = mapOf("action" to "getProduct", "productId" to id)
+    override fun getProductById(id : Long) : Result<ProductDto, ErrorResponse> {
+        try {
+            val request = mapOf("action" to "getProduct", "productId" to id)
 
-        val response = rabbitTemplate.convertSendAndReceive(
-            ConfigVariables.RABBITMQ_GET_PRODUCT_EXCHANGE_NAME,
-            ConfigVariables.RABBITMQ_GET_PRODUCT_ROUTING_KEY,
-            objectMapper.writeValueAsString(request)
-        )
+            val response = rabbitTemplate.convertSendAndReceive(
+                ConfigVariables.RABBITMQ_GET_PRODUCT_EXCHANGE_NAME,
+                ConfigVariables.RABBITMQ_GET_PRODUCT_ROUTING_KEY,
+                objectMapper.writeValueAsString(request)
+            )
 
-        if (response == null) {
-            throw ProductNotFoundException(ErrorMessages.PRODUCT_NOT_FOUND_MESSAGE)
+            val result = when(response) {
+                is Ok<*> -> response as Ok<ProductDto>
+                is Err<*> -> response as Err<ErrorResponse>
+                else -> Err(
+                    ErrorResponse(
+                        ErrorMessages.GENERIC_ERROR_MESSAGE,
+                        HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                        Date()
+                    )
+                )
+            }
+
+            return when(result) {
+                is Ok<ProductDto> -> Ok(productDtoDeserializer.deserializeProductDto(result.value))
+                is Err<ErrorResponse> -> Err(errorResponseDeserializer.deserializeErrorResponse(result.error))
+            }
+        } catch (ex: Exception) {
+            val errorMessage = when(ex) {
+                is AmqpException -> ErrorMessages.GENERIC_MESSAGE_QUEUE_ERROR_MESSAGE
+                is IllegalArgumentException -> ErrorMessages.INVALID_PRODUCT_LIST_MESSAGE
+                else -> ErrorMessages.GENERIC_ERROR_MESSAGE
+            }
+
+            return Err(
+                ErrorResponse(
+                    errorMessage,
+                    HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                    Date()
+                )
+            )
         }
-
-
-        return productDtoDeserializer.deserializeProductDto(response)
     }
 
-    override fun addProduct(addProductDto: AddProductDto) {
-        val request = mapOf("action" to "addProduct", "productData" to addProductDto)
+    override fun addProduct(@Valid addProductDto: AddProductDto): Result<Boolean, ErrorResponse> {
+        try {
+            val request = mapOf("action" to "addProduct", "productData" to addProductDto)
 
-        val response = rabbitTemplate.convertSendAndReceive(
-            ConfigVariables.RABBITMQ_ADD_PRODUCT_EXCHANGE_NAME,
-            ConfigVariables.RABBITMQ_ADD_PRODUCT_ROUTING_KEY,
-            objectMapper.writeValueAsString(request)
-        )
+            val response = rabbitTemplate.convertSendAndReceive(
+                ConfigVariables.RABBITMQ_ADD_PRODUCT_EXCHANGE_NAME,
+                ConfigVariables.RABBITMQ_ADD_PRODUCT_ROUTING_KEY,
+                objectMapper.writeValueAsString(request)
+            )
+
+            val result = when(response) {
+                is Ok<*> -> response as Ok<Boolean>
+                is Err<*> -> response as Err<ErrorResponse>
+                else -> Err(
+                    ErrorResponse(
+                        ErrorMessages.GENERIC_ERROR_MESSAGE,
+                        HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                        Date()
+                    )
+                )
+            }
+
+            return when(result) {
+                is Ok<Boolean> -> Ok(result.value)
+                is Err<ErrorResponse> -> Err(errorResponseDeserializer.deserializeErrorResponse(result.error))
+            }
+        } catch (ex: Exception) {
+            val errorMessage = when(ex) {
+                is AmqpException -> ErrorMessages.GENERIC_MESSAGE_QUEUE_ERROR_MESSAGE
+                is IllegalArgumentException -> ErrorMessages.INVALID_PRODUCT_LIST_MESSAGE
+                else -> ErrorMessages.GENERIC_ERROR_MESSAGE
+            }
+
+            return Err(
+                ErrorResponse(
+                    errorMessage,
+                    HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                    Date()
+                )
+            )
+        }
     }
 }

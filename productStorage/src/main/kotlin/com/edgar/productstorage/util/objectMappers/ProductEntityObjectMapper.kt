@@ -11,7 +11,7 @@ class ProductEntityObjectMapper(private val mapper: ObjectMapper) {
      * @param productEntity the ProductEntity object that will be converted.
      * @return a ProductDto Object.
      */
-    fun toProductDto(productEntity: ProductEntity): ProductDto {
+    fun toProductDto(productEntity: ProductEntity?): ProductDto {
         return mapper.convertValue(productEntity, ProductDto::class.java)
     }
 
