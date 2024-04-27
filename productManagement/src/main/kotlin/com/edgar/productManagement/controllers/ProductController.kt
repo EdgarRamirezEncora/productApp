@@ -44,7 +44,6 @@ class ProductController(private val productServiceImpl: ProductServiceImpl) {
         @RequestBody
         addProductDto: AddProductDto
     ) : ResponseEntity<Any> {
-        productServiceImpl.addProduct(addProductDto)
         return when(val response = productServiceImpl.addProduct(addProductDto)) {
             is Ok -> ResponseEntity.ok(response.value)
             is Err<ErrorResponse> -> ResponseEntity.status(response.error.statusCode).body(response.error)

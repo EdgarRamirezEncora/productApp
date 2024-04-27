@@ -17,5 +17,5 @@ interface ProductService {
      * The message contains the Product data in JSON format that will be added.
      * @param addProductDto the product data that will be added.
      */
-    fun addProduct(addProductDto: AddProductDto): Result<Boolean, ErrorResponse>
+    fun addProduct(addProductDto: AddProductDto): Result<Map<String, String>, ErrorResponse>
 }

@@ -14,6 +14,8 @@ import com.edgar.commonlibrary.util.ErrorResponse
 import com.github.michaelbull.result.*
 import jakarta.validation.Valid
 import org.springframework.amqp.AmqpException
+import org.springframework.amqp.core.Message
+import org.springframework.amqp.core.MessageProperties
 import org.springframework.http.HttpStatus
 import java.util.Date
 
@@ -31,7 +33,7 @@ class ProductServiceImpl(
             val response  = rabbitTemplate.convertSendAndReceive(
                     ConfigVariables.RABBITMQ_GET_PRODUCT_LIST_EXCHANGE_NAME,
                     ConfigVariables.RABBITMQ_GET_PRODUCT_LIST_ROUTING_KEY,
-                    objectMapper.writeValueAsString(request)
+                    Message(objectMapper.writeValueAsString(request).encodeToByteArray())
             )
 
             val result = when(response) {
@@ -74,7 +76,7 @@ class ProductServiceImpl(
             val response = rabbitTemplate.convertSendAndReceive(
                 ConfigVariables.RABBITMQ_GET_PRODUCT_EXCHANGE_NAME,
                 ConfigVariables.RABBITMQ_GET_PRODUCT_ROUTING_KEY,
-                objectMapper.writeValueAsString(request)
+                Message(objectMapper.writeValueAsString(request).encodeToByteArray())
             )
 
             val result = when(response) {
@@ -110,18 +112,20 @@ class ProductServiceImpl(
         }
     }
 
-    override fun addProduct(@Valid addProductDto: AddProductDto): Result<Boolean, ErrorResponse> {
+    override fun addProduct(@Valid addProductDto: AddProductDto): Result<Map<String, String>, ErrorResponse> {
         try {
             val request = mapOf("action" to "addProduct", "productData" to addProductDto)
+
+            val message = Message(objectMapper.writeValueAsString(request).encodeToByteArray())
 
             val response = rabbitTemplate.convertSendAndReceive(
                 ConfigVariables.RABBITMQ_ADD_PRODUCT_EXCHANGE_NAME,
                 ConfigVariables.RABBITMQ_ADD_PRODUCT_ROUTING_KEY,
-                objectMapper.writeValueAsString(request)
+                message
             )
 
             val result = when(response) {
-                is Ok<*> -> response as Ok<Boolean>
+                is Ok<*> -> response as Ok<String>
                 is Err<*> -> response as Err<ErrorResponse>
                 else -> Err(
                     ErrorResponse(
@@ -133,7 +137,7 @@ class ProductServiceImpl(
             }
 
             return when(result) {
-                is Ok<Boolean> -> Ok(result.value)
+                is Ok<String> -> Ok(mapOf("message" to result.value))
                 is Err<ErrorResponse> -> Err(errorResponseDeserializer.deserializeErrorResponse(result.error))
             }
         } catch (ex: Exception) {

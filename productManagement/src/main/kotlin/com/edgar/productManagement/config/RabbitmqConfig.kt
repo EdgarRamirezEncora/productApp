@@ -13,7 +13,16 @@ import org.springframework.amqp.support.converter.MessageConverter
 class RabbitmqConfig {
 
     @Bean
-    fun addProductQueue(): Queue = Queue(ConfigVariables.RABBITMQ_ADD_PRODUCT_QUEUE_NAME)
+    fun addProductQueue(): Queue = Queue(
+        ConfigVariables.RABBITMQ_ADD_PRODUCT_QUEUE_NAME,
+        true,
+        false,
+        false,
+        mapOf(
+            "x-dead-letter-exchange" to ConfigVariables.RABBITMQ_ADD_PRODUCT_DEAD_LETTER_QUEUE_EXCHANGE_NAME,
+            "x-dead-letter-routing-key" to ConfigVariables.RABBITMQ_ADD_PRODUCT_DEAD_LETTER_QUEUE_ROUTING_KEY
+        )
+    )
 
     @Bean
     fun addProductExchange(): TopicExchange = TopicExchange(ConfigVariables.RABBITMQ_ADD_PRODUCT_EXCHANGE_NAME)
@@ -23,6 +32,20 @@ class RabbitmqConfig {
                                             .bind(addProductQueue())
                                             .to(addProductExchange())
                                             .with(ConfigVariables.RABBITMQ_ADD_PRODUCT_ROUTING_KEY)
+
+    @Bean
+    fun addProductDeadLetterQueue(): Queue = QueueBuilder
+                                            .durable(ConfigVariables.RABBITMQ_ADD_PRODUCT_DEAD_LETTER_QUEUE_NAME)
+                                            .build()
+
+    @Bean
+    fun addProductDeadLetterQueueExchange(): DirectExchange = DirectExchange(ConfigVariables.RABBITMQ_ADD_PRODUCT_DEAD_LETTER_QUEUE_EXCHANGE_NAME)
+
+    @Bean
+    fun addProductDeadLetterQueueBinding(): Binding = BindingBuilder
+                                                        .bind(addProductDeadLetterQueue())
+                                                        .to(addProductDeadLetterQueueExchange())
+                                                        .with(ConfigVariables.RABBITMQ_ADD_PRODUCT_DEAD_LETTER_QUEUE_ROUTING_KEY)
 
     @Bean
     fun getProductListQueue(): Queue = Queue(ConfigVariables.RABBITMQ_GET_PRODUCT_LIST_QUEUE_NAME)

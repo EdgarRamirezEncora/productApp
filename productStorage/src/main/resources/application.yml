@@ -14,5 +14,13 @@ spring:
     port: ${RABBITMQ_PORT}
     username: ${RABBITMQ_USERNAME}
     password: ${RABBITMQ_PASSWORD}
+    listener:
+      simple:
+        retry:
+          enabled: true
+          max-attempts: 3
+          max-interval: 20s
+          initial-interval: 5s
+          multiplier: 2
 server:
   port: 8081

@@ -16,5 +16,6 @@
   <modules>
       <module>commonLibrary</module>
       <module>productManagement</module>
+      <module>productStorage</module>
   </modules>
 </project>

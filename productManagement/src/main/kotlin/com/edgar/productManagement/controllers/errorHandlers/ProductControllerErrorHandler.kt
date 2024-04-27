@@ -21,6 +21,8 @@ class ProductControllerErrorHandler {
         Exception::class
     )
     fun errorHandler(ex: Exception): ResponseEntity<ErrorResponse> {
+        println(ex.message)
+
         val errorMessage = when(ex) {
             is AmqpException -> ErrorMessages.GENERIC_MESSAGE_QUEUE_ERROR_MESSAGE
             is MethodArgumentNotValidException -> ErrorMessages.GENERIC_INVALID_PRODUCT_DATA
