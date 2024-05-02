@@ -1,4 +1,4 @@
-version: '3.9'
+version: '3.10'
 
 services:
   postgresql:
@@ -42,5 +42,16 @@ services:
     ports:
       - '5675:5675'
       - '15672:15672'
+  product_web_app:
+    container_name: product-web-app
+    build:
+      context: ./productwebapp
+    entrypoint: sh -c "npm i --dev --silent && npm run dev"
+    ports:
+      - '3001:3001'
+    stdin_open: true
+    volumes:
+      - './productwebapp:/app'
 volumes:
   product-db-data:
+

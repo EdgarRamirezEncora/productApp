@@ -37,3 +37,4 @@ build/
 ## CUSTOM IGNORE
 *target/
 *.env
+*node_modules/
